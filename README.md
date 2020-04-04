@@ -1,5 +1,11 @@
 # 9517-group-project
 
+#### Division works:
+
+1.  Task1: Zitong Li, Javan
+2.  Task2: Yang Cao
+3.  Task3: Yang Yu, Yijin Zheng
+
 **Group Component - 30 marks
 ** The group Component **consists of 3 tasks**, each of which needs to be **completed as a group and will be evaluated ONCE for the whole group**.
 
