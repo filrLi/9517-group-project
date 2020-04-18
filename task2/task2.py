@@ -2,15 +2,16 @@ import cv2
 import numpy as np
 import os
 
-confidence_threshold = 0.5
+confidence_threshold = 0.25
 nms_threshold = 0.4
+image_size = 416
 
 image_sequence_path = "./task2/data/sequence"
-output_video_path = "./task2/video.avi"
+output_video_path = "./task2/video_yolov3_tiny.avi"
 
 labels_path = "./task2/yolov3/coco.names"
-yolo_config_path = "./task2/yolov3/yolov3.cfg"
-yolo_weights_path = "./task2/yolov3/yolov3.weights"
+yolo_config_path = "./task2/yolov3/yolov3-tiny.cfg"
+yolo_weights_path = "./task2/yolov3/yolov3-tiny.weights"
 
 labels = []
 with open(labels_path, 'rt') as f:
@@ -30,7 +31,8 @@ layer_names = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 def detect_person(image):
     height, width, _ = image.shape
 
-    blob = cv2.dnn.blobFromImage(image, 1/255.0, (416, 416), swapRB=True, crop=False)
+    blob = cv2.dnn.blobFromImage(
+        image, 1/255.0, (image_size, image_size), swapRB=True, crop=False)
     net.setInput(blob)
     layer_outputs = net.forward(layer_names)
 
@@ -66,14 +68,16 @@ def draw_detections(image, indexes):
             color = [int(c) for c in label_colors[class_ids[i]]]
             cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
             text = f"{labels[class_ids[i]]}: {confidences[i]:.4f}"
-            cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            cv2.putText(image, text, (x, y - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
 
 cap = cv2.VideoCapture(f"{image_sequence_path}/%06d.jpg", cv2.CAP_IMAGES)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter(output_video_path, fourcc, 10.0, (frame_width * 2, frame_height * 2))
+out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
+                      (frame_width * 2, frame_height * 2))
 
 while (cap.isOpened()):
     ret, frame = cap.read()
@@ -81,8 +85,12 @@ while (cap.isOpened()):
         break
 
     resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
+
     boxes, confidences, class_ids = detect_person(resized_frame)
-    indexes = cv2.dnn.NMSBoxes(boxes, confidences, confidence_threshold, nms_threshold)
+
+    indexes = cv2.dnn.NMSBoxes(
+        boxes, confidences, confidence_threshold, nms_threshold)
+
     draw_detections(resized_frame, indexes)
     out.write(resized_frame)
 
