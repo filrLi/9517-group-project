@@ -5,3 +5,4 @@ data*
 task2/**/sequence/
 task2/.ipynb_checkpoints/
 task2/yolov3/yolov3.weights
+task2/**/*.avi
