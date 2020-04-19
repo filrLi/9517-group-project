@@ -2,17 +2,16 @@ import cv2
 import numpy as np
 import os
 
-window_name = "Task2"
-confidence_threshold = 0.25
+confidence_threshold = 0.5
 nms_threshold = 0.4
 image_size = 416
 
 image_sequence_path = "./task2/data/sequence"
-output_video_path = "./task2/video_yolov3_tiny.avi"
+output_video_path = "./task2/video_yolov3.avi"
 
 labels_path = "./task2/yolov3/coco.names"
-yolo_config_path = "./task2/yolov3/yolov3-tiny.cfg"
-yolo_weights_path = "./task2/yolov3/yolov3-tiny.weights"
+yolo_config_path = "./task2/yolov3/yolov3.cfg"
+yolo_weights_path = "./task2/yolov3/yolov3.weights"
 
 labels = []
 with open(labels_path, 'rt') as f:
@@ -72,11 +71,9 @@ def draw_detections(image, indexes):
             cv2.putText(image, text, (x, y - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-
 x1, y1, x2, y2 = None, None, None, None
 drawing = False
 hasDrawn = False
-
 
 def draw_rectangle(event, x, y, flags, param):
     global x1, y1, x2, y2, drawing, hasDrawn
@@ -84,19 +81,19 @@ def draw_rectangle(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         drawing = True
         x1, y1 = x, y
-        cv2.imshow(window_name, origin_image)
+        cv2.imshow("Task2", origin_image)
         hasDrawn = False
     elif event == cv2.EVENT_MOUSEMOVE:
         if drawing == True:
-            cv2.imshow(window_name, origin_image)
+            cv2.imshow("Task2", origin_image)
             image = origin_image.copy()
             cv2.rectangle(image, (x1, y1), (x, y), (0, 255, 0), 1)
-            cv2.imshow(window_name, image)
+            cv2.imshow("Task2", image)
             x2, y2 = x, y
     elif event == cv2.EVENT_LBUTTONUP:
         image = origin_image.copy()
         cv2.rectangle(image, (x1, y1), (x, y), (0, 255, 0), 1)
-        cv2.imshow(window_name, image)
+        cv2.imshow("Task2", image)
         drawing = False
         x2, y2 = x, y
         hasDrawn = True
@@ -105,9 +102,9 @@ def draw_rectangle(event, x, y, flags, param):
 cap = cv2.VideoCapture(f"{image_sequence_path}/%06d.jpg", cv2.CAP_IMAGES)
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
-                      (frame_width * 2, frame_height * 2))
+#fourcc = cv2.VideoWriter_fourcc(*'XVID')
+#out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
+#                      (frame_width * 2, frame_height * 2))
 
 frame_index = 0
 while (cap.isOpened()):
@@ -116,22 +113,22 @@ while (cap.isOpened()):
         break
 
     if frame_index == 0:
-        cv2.namedWindow(window_name)
-        cv2.setMouseCallback(window_name, draw_rectangle, [frame])
+        cv2.namedWindow("Task2")
+        cv2.setMouseCallback("Task2", draw_rectangle, [frame])
         while True:
             if drawing == False and hasDrawn == False:
-                cv2.imshow(window_name, frame)
+                cv2.imshow("Task2", frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("s"):
                 break
     else:
-        cv2.setMouseCallback(window_name, lambda *args: None)
         key = cv2.waitKey(1) & 0xFF
 
     if hasDrawn:
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
 
     frame_index += 1
+    #resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
 
     boxes, confidences, class_ids = detect_person(frame)
 
@@ -139,13 +136,11 @@ while (cap.isOpened()):
         boxes, confidences, confidence_threshold, nms_threshold)
 
     draw_detections(frame, indexes)
+    cv2.imshow("Task2", frame)
 
-    cv2.imshow(window_name, frame)
     key = cv2.waitKey(1) & 0xFF
-
-    resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
-    out.write(resized_frame)
+    #out.write(resized_frame)
 
 cap.release()
-out.release()
+#out.release()
 cv2.destroyAllWindows()
