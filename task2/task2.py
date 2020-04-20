@@ -61,7 +61,7 @@ def detect_person(image):
     return boxes, confidences, class_ids
 
 
-def draw_detections(image, indexes):
+def draw_detections(image, indexes, boxes):
     if len(indexes) > 0:
         for i in indexes.flatten():
             x, y = (boxes[i][0], boxes[i][1])
@@ -109,6 +109,8 @@ fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
                       (frame_width * 2, frame_height * 2))
 
+trackers = cv2.MultiTracker_create()
+
 frame_index = 0
 while (cap.isOpened()):
     ret, frame = cap.read()
@@ -138,7 +140,18 @@ while (cap.isOpened()):
     indexes = cv2.dnn.NMSBoxes(
         boxes, confidences, confidence_threshold, nms_threshold)
 
-    draw_detections(frame, indexes)
+    draw_detections(frame, indexes, boxes)
+
+    for i in indexes.flatten():
+        tracker = cv2.TrackerKCF_create()    
+        trackers.add(tracker, frame, tuple(boxes[i]))
+        
+
+    success, tracking_boxes = trackers.update(frame)
+    print(len(tracking_boxes))
+    for box in tracking_boxes:
+        x, y, w, h = [int(k) for k in box]
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
     cv2.imshow(window_name, frame)
     key = cv2.waitKey(1) & 0xFF
