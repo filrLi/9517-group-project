@@ -6,7 +6,7 @@ from sort.sort import *
 
 window_name = "YOLOv3 + SORT"
 confidence_threshold = 0.25
-nms_threshold = 0.4
+nms_threshold = 0.2
 image_size = 416
 
 image_sequence_path = "./task2/data/sequence"
@@ -105,6 +105,23 @@ def is_overlap(box1, box2):
     return True
 
 
+def is_contained(box1, box2):
+    box1_x1 = min(box1[0], box1[2])
+    box1_y1 = min(box1[1], box1[3])
+    box1_x2 = max(box1[0], box1[2])
+    box1_y2 = max(box1[1], box1[3])
+
+    box2_x1 = min(box2[0], box2[2])
+    box2_y1 = min(box2[1], box2[3])
+    box2_x2 = max(box2[0], box2[2])
+    box2_y2 = max(box2[1], box2[3])
+
+    return box1_x1 >= box2_x1 and\
+        box1_x2 <= box2_x2 and\
+        box1_y1 >= box2_y1 and\
+        box1_y2 <= box2_y2
+
+
 def draw_rectangle(event, x, y, flags, param):
     global x1, y1, x2, y2, drawing, hasDrawn
     origin_image = param[0]
@@ -178,7 +195,7 @@ while (cap.isOpened()):
     for d in trackers:
         x0, y0, x, y, object_id = int(d[0]), int(
             d[1]), int(d[2]), int(d[3]), int(d[4])
-        color = [int(c) for c in label_colors[object_id]]
+        color = [int(c) for c in label_colors[object_id % 80]]
         cv2.rectangle(frame, (x0, y0), (x, y), color, 2)
         text = f"{object_id}"
         cv2.putText(frame, text, (x, y - 5),
@@ -190,7 +207,8 @@ while (cap.isOpened()):
             if is_overlap(box1, box2):
                 if object_id not in detected_object_ids and object_id not in existing_object_ids:
                     existing_object_ids.append(object_id)
-                    num_of_moving_in += 1 if frame_index > 0 else 0
+                    if not is_contained(box1, box2):
+                        num_of_moving_in += 1 if frame_index > 0 else 0
             else:
                 if object_id in existing_object_ids and object_id not in detected_object_ids:
                     existing_object_ids.remove(object_id)
