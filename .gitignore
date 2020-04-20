@@ -1,6 +1,8 @@
 .vscode
 
 data*
+*/*avi
+*__pycache__
 
 task2/**/sequence/
 task2/.ipynb_checkpoints/
