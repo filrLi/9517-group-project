@@ -1,18 +1,20 @@
 import cv2
 import numpy as np
 import os
+from sort.sort import *
 
-window_name = "Task2"
-confidence_threshold = 0.25
+
+window_name = "YOLOv3 + SORT"
+confidence_threshold = 0.5
 nms_threshold = 0.4
 image_size = 416
 
 image_sequence_path = "./task2/data/sequence"
-output_video_path = "./task2/video_yolov3_tiny.avi"
+output_video_path = "./task2/video.avi"
 
 labels_path = "./task2/yolov3/coco.names"
-yolo_config_path = "./task2/yolov3/yolov3-tiny.cfg"
-yolo_weights_path = "./task2/yolov3/yolov3-tiny.weights"
+yolo_config_path = "./task2/yolov3/yolov3.cfg"
+yolo_weights_path = "./task2/yolov3/yolov3.weights"
 
 labels = []
 with open(labels_path, 'rt') as f:
@@ -109,7 +111,8 @@ fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
                       (frame_width * 2, frame_height * 2))
 
-trackers = cv2.MultiTracker_create()
+#trackers = cv2.MultiTracker_create()
+mot_tracker = Sort()
 
 frame_index = 0
 while (cap.isOpened()):
@@ -140,18 +143,21 @@ while (cap.isOpened()):
     indexes = cv2.dnn.NMSBoxes(
         boxes, confidences, confidence_threshold, nms_threshold)
 
-    draw_detections(frame, indexes, boxes)
-
+    #draw_detections(frame, indexes, boxes)
+    detections = []
     for i in indexes.flatten():
-        tracker = cv2.TrackerKCF_create()    
-        trackers.add(tracker, frame, tuple(boxes[i]))
-        
+        x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
+        detections.append([x, y, x + w, y + h])
 
-    success, tracking_boxes = trackers.update(frame)
-    print(len(tracking_boxes))
-    for box in tracking_boxes:
-        x, y, w, h = [int(k) for k in box]
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    trackers = mot_tracker.update(np.array(detections))
+    for d in trackers:
+        x0, y0, x, y, object_id = int(d[0]), int(
+            d[1]), int(d[2]), int(d[3]), int(d[4])
+        color = [int(c) for c in label_colors[object_id]]
+        cv2.rectangle(frame, (x0, y0), (x, y), color, 2)
+        text = f"{object_id}"
+        cv2.putText(frame, text, (x, y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
     cv2.imshow(window_name, frame)
     key = cv2.waitKey(1) & 0xFF
