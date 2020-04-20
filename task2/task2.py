@@ -5,7 +5,7 @@ from sort.sort import *
 
 
 window_name = "YOLOv3 + SORT"
-confidence_threshold = 0.5
+confidence_threshold = 0.25
 nms_threshold = 0.4
 image_size = 416
 
@@ -70,7 +70,8 @@ def draw_detections(image, indexes, boxes):
             w, h = (boxes[i][2], boxes[i][3])
             color = [int(c) for c in label_colors[class_ids[i]]]
             cv2.rectangle(image, (x, y), (x + w, y + h), color, 2)
-            text = f"{labels[class_ids[i]]}: {confidences[i]:.4f}"
+            #text = f"{labels[class_ids[i]]}: {confidences[i]:.4f}"
+            text = ""
             cv2.putText(image, text, (x, y - 5),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
@@ -78,6 +79,30 @@ def draw_detections(image, indexes, boxes):
 x1, y1, x2, y2 = None, None, None, None
 drawing = False
 hasDrawn = False
+existing_object_ids = []
+detected_object_ids = []
+num_of_moving_in = 0
+num_of_moving_out = 0
+
+
+def is_overlap(box1, box2):
+    box1_x1 = min(box1[0], box1[2])
+    box1_y1 = min(box1[1], box1[3])
+    box1_x2 = max(box1[0], box1[2])
+    box1_y2 = max(box1[1], box1[3])
+
+    box2_x1 = min(box2[0], box2[2])
+    box2_y1 = min(box2[1], box2[3])
+    box2_x2 = max(box2[0], box2[2])
+    box2_y2 = max(box2[1], box2[3])
+
+    if box1_x1 >= box2_x2 or box1_x2 <= box2_x1:
+        return False
+
+    if box1_y1 >= box2_y2 or box1_y2 <= box2_y1:
+        return False
+
+    return True
 
 
 def draw_rectangle(event, x, y, flags, param):
@@ -132,18 +157,18 @@ while (cap.isOpened()):
     else:
         cv2.setMouseCallback(window_name, lambda *args: None)
         key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            break
 
     if hasDrawn:
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 1)
-
-    frame_index += 1
 
     boxes, confidences, class_ids = detect_person(frame)
 
     indexes = cv2.dnn.NMSBoxes(
         boxes, confidences, confidence_threshold, nms_threshold)
 
-    #draw_detections(frame, indexes, boxes)
+    draw_detections(frame, indexes, boxes)
     detections = []
     for i in indexes.flatten():
         x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
@@ -159,11 +184,30 @@ while (cap.isOpened()):
         cv2.putText(frame, text, (x, y - 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
+        if hasDrawn:
+            box1 = (x0, y0, x, y)
+            box2 = (x1, y1, x2, y2)
+            if is_overlap(box1, box2):
+                if object_id not in detected_object_ids and object_id not in existing_object_ids:
+                    existing_object_ids.append(object_id)
+                    num_of_moving_in += 1 if frame_index > 0 else 0
+            else:
+                if object_id in existing_object_ids and object_id not in detected_object_ids:
+                    existing_object_ids.remove(object_id)
+                    detected_object_ids.append(object_id)
+                    num_of_moving_out += 1
+            cv2.putText(frame, "No. of moving in: {}".format(num_of_moving_in),
+                        (20, frame_height - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(frame, "No. of moving out: {}".format(num_of_moving_out),
+                        (20, frame_height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+
     cv2.imshow(window_name, frame)
     key = cv2.waitKey(1) & 0xFF
 
     resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
     out.write(resized_frame)
+
+    frame_index += 1
 
 cap.release()
 out.release()
