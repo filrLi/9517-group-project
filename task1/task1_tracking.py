@@ -26,6 +26,16 @@ layer_names = net.getLayerNames()
 layer_names = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 
+class Bbox:
+    def __init__(self, box, id, age=0):
+        self.box = box
+        self.id = int(id)
+        self.age = age
+
+    def addAge(self):
+        self.age += 1
+
+
 def detect_person(image):
     height, width, _ = image.shape
 
@@ -56,18 +66,35 @@ def detect_person(image):
     return boxes, confidences
 
 
-def draw_bbox(frame, bb, id, colors):
+def draw_bbox(frame, bbox, colors):
+    id = bbox.id
     if id in colors:
         color = colors[id]
     else:
         color = tuple(np.random.randint(0, 255) for _ in range(3))
         colors[id] = color
 
-    x, y, x2, y2 = (int(_)for _ in bb)
+    x, y, x2, y2 = (int(_)for _ in bbox.box)
     cv2.rectangle(frame, (x, y), (x2, y2), color, 2)
     text = f"id:{id}"
     cv2.putText(frame, text, (x, y - 5),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+
+
+def draw_track(frame, current, colors, tracks):
+    for id in current:
+        xc1, yc1, xc2, yc2 = current[id].box
+        centerC = [int((xc1+xc2)//2), int((yc1+yc2)//2)]
+
+        if id in tracks:
+            tracks[id].append(centerC)
+            color = colors[id]
+            track = np.array(tracks[id], dtype=np.int32)
+            # xp1, yp1, xp2, yp2 = prev[id].box
+            # centerP = (int((xp1+xp2)//2), int((yp1+yp2)//2))
+            cv2.polylines(frame, [track], False, color, 2)
+        else:
+            tracks[id] = [centerC]
 
 
 # load files and config
@@ -79,12 +106,11 @@ out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
                       (frame_width * 2, frame_height * 2))
 
 
-# set up color map
-colors = {}
-
 # Create MultiTracker object
 mot_tracker = Sort()
 prev = {}
+colors = {}
+tracks = {}
 
 # frame1
 ret, frame1 = cap.read()
@@ -98,29 +124,17 @@ detections = [boxes[i] for i in indexes.flatten()]
 dets = np.array(detections)
 dets[:, 2:4] += dets[:, 0:2]
 
-# define a class to store bbox
-
-
-class Bbox:
-    def __init__(self, box, id, age=0):
-        self.box = box
-        self.id = id
-        self.age = age
-
-    def addAge(self):
-        self.age += 1
-
-
 # get updated location of objects in subsequent frames
 track_bbs_ids = mot_tracker.update(dets)
 for bb_id in track_bbs_ids:
     bb = bb_id[:-1]
     id = bb_id[-1]
     bbox = Bbox(bb, id)
+    draw_bbox(frame1, bbox, colors)
     prev[id] = bbox
+draw_track(frame1, prev, colors, tracks)
 
-
-frame_index = 0
+frame_index = 1
 while (cap.isOpened()):
     count = 0
     ret, frame = cap.read()
@@ -154,25 +168,29 @@ while (cap.isOpened()):
     # get updated location of objects in subsequent frames
     track_bbs_ids = mot_tracker.update(dets)
 
-    # draw tracked objects
     for bb_id in track_bbs_ids:
         bb = bb_id[:-1]
         id = bb_id[-1]
         if id not in current:
             bbox = Bbox(bb, id)
             current[id] = bbox
-        draw_bbox(frame, bb, id, colors)
+
+    # draw tracked objects
+    for bbox in current.values():
+        draw_bbox(frame, bbox, colors)
         count += 1
+
+    # draw trajectory
+    draw_track(frame, current, colors, tracks)
 
     # update prev as current
     prev = current
 
-    resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
     cv2.putText(frame, "#People: {}".format(count), (20, frame_height - 20),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1, (255, 255, 255), 3)
     cv2.imshow(window_name, frame)
-    out.write(resized_frame)
+    out.write(frame)
 
     # stop listener
     key = cv2.waitKey(40)
