@@ -8,13 +8,19 @@ window_name = "YOLOv3 + SORT"
 confidence_threshold = 0.25
 nms_threshold = 0.2
 image_size = 416
+use_yolov3_tiny = True
 
 image_sequence_path = "./task2/data/sequence"
-output_video_path = "./task2/video.avi"
-
 labels_path = "./task2/yolov3/coco.names"
-yolo_config_path = "./task2/yolov3/yolov3.cfg"
-yolo_weights_path = "./task2/yolov3/yolov3.weights"
+
+if use_yolov3_tiny:
+    output_video_path = "./task2/video_yolov3_tiny.avi"
+    yolo_config_path = "./task2/yolov3/yolov3-tiny.cfg"
+    yolo_weights_path = "./task2/yolov3/yolov3-tiny.weights"
+else:
+    output_video_path = "./task2/video_yolov3.avi"
+    yolo_config_path = "./task2/yolov3/yolov3.cfg"
+    yolo_weights_path = "./task2/yolov3/yolov3.weights"
 
 labels = []
 with open(labels_path, 'rt') as f:
@@ -54,9 +60,15 @@ def detect_person(image):
             if confidence > confidence_threshold:
                 box = detection[0:4] * np.array([width, height, width, height])
                 center_x, center_y, box_width, box_height = box.astype("int")
-                x = int(center_x - box_width / 2)
-                y = int(center_y - box_height / 2)
-                boxes.append([x, y, int(box_width), int(box_height)])
+                if use_yolov3_tiny:
+                    x = int(center_x - box_width)
+                    y = int(center_y - box_height)
+                    boxes.append(
+                        [x, y, int(box_width * 2), int(box_height * 2)])
+                else:
+                    x = int(center_x - box_width / 2)
+                    y = int(center_y - box_height / 2)
+                    boxes.append([x, y, int(box_width), int(box_height)])
                 confidences.append(float(confidence))
                 class_ids.append(class_id)
 
@@ -185,7 +197,7 @@ while (cap.isOpened()):
     indexes = cv2.dnn.NMSBoxes(
         boxes, confidences, confidence_threshold, nms_threshold)
 
-    draw_detections(frame, indexes, boxes)
+    #draw_detections(frame, indexes, boxes)
     detections = []
     for i in indexes.flatten():
         x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
@@ -221,6 +233,8 @@ while (cap.isOpened()):
 
     cv2.imshow(window_name, frame)
     key = cv2.waitKey(1) & 0xFF
+    if frame_index > 0 and key == ord("q"):
+        break
 
     resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
     out.write(resized_frame)
