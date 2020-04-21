@@ -1,6 +1,6 @@
 import cv2
 
-PATH = './data.nosync/sequence'
+PATH = '../data.nosync/sequence'
 cap = cv2.VideoCapture(PATH + "/%06d.jpg", cv2.CAP_IMAGES)
 
 frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -9,7 +9,7 @@ frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
 fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D')
 
-out = cv2.VideoWriter("./task1/output.avi", fourcc,
+out = cv2.VideoWriter("./output.avi", fourcc,
                       10.0, (frame_width*2, frame_height*2))
 
 ret, frame1 = cap.read()
