@@ -5,10 +5,10 @@ from sort.sort import *
 
 
 window_name = "YOLOv3 + SORT"
-confidence_threshold = 0.25
-nms_threshold = 0.2
+confidence_threshold = 0.5
+nms_threshold = 0.4
 image_size = 416
-use_yolov3_tiny = True
+use_yolov3_tiny = False
 
 image_sequence_path = "./task2/data/sequence"
 labels_path = "./task2/yolov3/coco.names"
@@ -35,6 +35,16 @@ net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
 layer_names = net.getLayerNames()
 layer_names = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
+
+
+class Bbox:
+    def __init__(self, box, id, age=0):
+        self.box = box
+        self.id = int(id)
+        self.age = age
+
+    def add_age(self):
+        self.age += 1
 
 
 def detect_person(image):
@@ -167,6 +177,8 @@ out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
 
 #trackers = cv2.MultiTracker_create()
 mot_tracker = Sort()
+prev = {}
+colors = {}
 
 frame_index = 0
 while (cap.isOpened()):
@@ -203,11 +215,35 @@ while (cap.isOpened()):
         x, y, w, h = boxes[i][0], boxes[i][1], boxes[i][2], boxes[i][3]
         detections.append([x, y, x + w, y + h])
 
+    current = {}
+    for object_id, bbox in prev.items():
+        overlapping = False
+        for det in detections:
+            if is_overlap(det, bbox.box) == True:
+                overlapping = True
+                break
+        if overlapping == False and bbox.age < 5:
+            bbox.add_age()
+            current[object_id] = bbox
+            detections.append(bbox.box)
+
     trackers = mot_tracker.update(np.array(detections))
-    for d in trackers:
-        x0, y0, x, y, object_id = int(d[0]), int(
-            d[1]), int(d[2]), int(d[3]), int(d[4])
-        color = [int(c) for c in label_colors[object_id % 80]]
+
+    for det in trackers:
+        x0, y0, x, y, object_id = det[0], det[1], det[2], det[3], int(det[4])
+        if object_id not in current:
+            bbox = Bbox([x0, y0, x, y], object_id)
+            current[object_id] = bbox
+
+    for object_id, bbox in current.items():
+        x0, y0, x, y = bbox.box
+        x0, y0, x, y = int(x0), int(y0), int(x), int(y)
+        if object_id in colors:
+            color = colors[object_id]
+        else:
+            color = tuple(np.random.randint(0, 255) for _ in range(3))
+            colors[object_id] = color
+
         cv2.rectangle(frame, (x0, y0), (x, y), color, 2)
         text = f"{object_id}"
         cv2.putText(frame, text, (x, y - 5),
@@ -232,7 +268,7 @@ while (cap.isOpened()):
                         (20, frame_height - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
     cv2.imshow(window_name, frame)
-    key = cv2.waitKey(1) & 0xFF
+    key = cv2.waitKey(2) & 0xFF
     if frame_index > 0 and key == ord("q"):
         break
 
@@ -240,6 +276,7 @@ while (cap.isOpened()):
     out.write(resized_frame)
 
     frame_index += 1
+    prev = current
 
 cap.release()
 out.release()
