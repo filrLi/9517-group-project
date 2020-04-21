@@ -6,7 +6,7 @@ from sort import *
 window_name = "Task1"
 confidence_threshold = 0.5
 nms_threshold = 0.3
-max_age = 5
+max_age = 8
 
 
 image_sequence_path = "../data.nosync/sequence"
@@ -103,7 +103,7 @@ frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out = cv2.VideoWriter(output_video_path, fourcc, 10.0,
-                      (frame_width * 2, frame_height * 2))
+                      (frame_width, frame_height))
 
 
 # Create MultiTracker object
