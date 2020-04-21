@@ -4,9 +4,10 @@ import os
 from sort import *
 
 window_name = "Task1"
-confidence_threshold = 0.2
+confidence_threshold = 0.5
 nms_threshold = 0.3
-image_size = 416
+max_age = 5
+
 
 image_sequence_path = "../data.nosync/sequence"
 output_video_path = "./output.avi"
@@ -83,6 +84,41 @@ colors = {}
 
 # Create MultiTracker object
 mot_tracker = Sort()
+prev = {}
+
+# frame1
+ret, frame1 = cap.read()
+boxes, confidences = detect_person(frame1)
+# apply Non-Maximum Suppression
+indexes = cv2.dnn.NMSBoxes(
+    boxes, confidences, confidence_threshold, nms_threshold)
+detections = [boxes[i] for i in indexes.flatten()]
+
+# convert to [x1,y1,w,h] to [x1,y1,x2,y2]
+dets = np.array(detections)
+dets[:, 2:4] += dets[:, 0:2]
+
+# define a class to store bbox
+
+
+class Bbox:
+    def __init__(self, box, id, age=0):
+        self.box = box
+        self.id = id
+        self.age = age
+
+    def addAge(self):
+        self.age += 1
+
+
+# get updated location of objects in subsequent frames
+track_bbs_ids = mot_tracker.update(dets)
+for bb_id in track_bbs_ids:
+    bb = bb_id[:-1]
+    id = bb_id[-1]
+    bbox = Bbox(bb, id)
+    prev[id] = bbox
+
 
 frame_index = 0
 while (cap.isOpened()):
@@ -101,10 +137,19 @@ while (cap.isOpened()):
         boxes, confidences, confidence_threshold, nms_threshold)
     detections = [boxes[i] for i in indexes.flatten()]
 
-    # convert to [x1,y1,w,h] to [x1,y1,x2,y2]
+    # convert [x1,y1,w,h] to [x1,y1,x2,y2]
     dets = np.array(detections)
-    print(dets)
     dets[:, 2:4] += dets[:, 0:2]
+
+    # compare with prev frame
+    current = {}
+    for id, bbox in prev.items():
+        x1, y1, x2, y2 = bbox.box
+        # cannot find box overlap with current prev box
+        if dets[(dets[:, 2] > x1) & (dets[:, 3] > y1) & (dets[:, 0] < x2) & (dets[:, 1] < y2)].shape[0] == 0 and bbox.age < max_age:
+            bbox.addAge()
+            current[id] = bbox
+            dets = np.vstack((dets, bbox.box))
 
     # get updated location of objects in subsequent frames
     track_bbs_ids = mot_tracker.update(dets)
@@ -113,8 +158,14 @@ while (cap.isOpened()):
     for bb_id in track_bbs_ids:
         bb = bb_id[:-1]
         id = bb_id[-1]
+        if id not in current:
+            bbox = Bbox(bb, id)
+            current[id] = bbox
         draw_bbox(frame, bb, id, colors)
         count += 1
+
+    # update prev as current
+    prev = current
 
     resized_frame = cv2.resize(frame, (frame_width * 2, frame_height * 2))
     cv2.putText(frame, "#People: {}".format(count), (20, frame_height - 20),
@@ -124,7 +175,7 @@ while (cap.isOpened()):
     out.write(resized_frame)
 
     # stop listener
-    key = cv2.waitKey(1) & 0xFF
+    key = cv2.waitKey(40)
     if key == ord('q'):
         break
 
