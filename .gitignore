@@ -3,6 +3,7 @@
 data*
 */*avi
 *__pycache__
+*yolov3
 
 task2/**/sequence/
 task2/.ipynb_checkpoints/
