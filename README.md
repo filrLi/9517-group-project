@@ -10,7 +10,7 @@ Go to the task1 directory, type these commands:
     cd task1
     git clone https://github.com/abewley/sort.git
     wget -P ./yolov3 https://pjreddie.com/media/files/yolov3-tiny.weights
-    pip install -r requirements.txt 
+    pip install -r requirements.txt
     ```
 
 2.  Run the `task1.py`
@@ -25,7 +25,6 @@ Go to the task1 directory, type these commands:
 
 4.  To quit, simply press q.
 
-
 ## Task 2
 
 Go to the task2 directory, type these commands:
@@ -34,11 +33,11 @@ Go to the task2 directory, type these commands:
 
     ```
     cd task2
-    git clone https://github.com/abewley/sort.git 
+    git clone https://github.com/abewley/sort.git
     wget -P ./yolov3 https://pjreddie.com/media/files/yolov3.weights
     or
-    wget -P ./yolov3 https://pjreddie.com/media/files/yolov3-tiny.weights 
-    pip install -r requirements.txt 
+    wget -P ./yolov3 https://pjreddie.com/media/files/yolov3-tiny.weights
+    pip install -r requirements.txt
     ```
 
 2.  Run the `task2.py`
@@ -57,22 +56,6 @@ Go to the task2 directory, type these commands:
 
 Go to the task3 directory, type these commands:
 
-1.  Installing necessary dependencies
+1.  Open jupyter notebook
 
-    ```
-    cd task3
-    wget -P ./yolov3 https://pjreddie.com/media/files/yolov3.weights
-    pip install -r requirements.txt 
-    ```
-
-2.  Run the `task3.py`
-
-    ```
-    python task3.py
-    ```
-
-3.  You will see a window pop out like this
-
-    ![task3](assets/task3.png)
-
-4.  To quit, simply press q.
+2.  Run task3.ipynb
