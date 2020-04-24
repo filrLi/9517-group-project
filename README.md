@@ -60,4 +60,3 @@ Go to the task2 directory, type these commands:
 
 3.  Wait for the vedio generating
 
-4.  To quit, simply press q
