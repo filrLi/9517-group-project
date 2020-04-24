@@ -54,8 +54,6 @@ Go to the task2 directory, type these commands:
 
 ## Task 3
 
-Go to the task3 directory, type these commands:
-
 1.  Open jupyter notebook
 
 2.  Run task3.ipynb
