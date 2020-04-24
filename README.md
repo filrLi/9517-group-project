@@ -57,3 +57,7 @@ Go to the task2 directory, type these commands:
 1.  Open jupyter notebook
 
 2.  Run task3.ipynb
+
+3.  Wait for the vedio generating
+
+4.  To quit, simply press q
