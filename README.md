@@ -52,3 +52,27 @@ Go to the task2 directory, type these commands:
 4.  Press s key to start
 
 5.  To quit, simply press q.
+
+## Task 3
+
+Go to the task3 directory, type these commands:
+
+1.  Installing necessary dependencies
+
+    ```
+    cd task3
+    wget -P ./yolov3 https://pjreddie.com/media/files/yolov3.weights
+    pip install -r requirements.txt 
+    ```
+
+2.  Run the `task3.py`
+
+    ```
+    python task3.py
+    ```
+
+3.  You will see a window pop out like this
+
+    ![task3](assets/task3.png)
+
+4.  To quit, simply press q.
